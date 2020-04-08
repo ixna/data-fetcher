@@ -10,7 +10,7 @@ from error import (
     DataSourceError,
 )
 import pandas
-from helper import auth, validate_token, process_data
+from helper import auth, validate_token, update_data
 
 def factory():
     app = flask.Flask(__name__)
@@ -39,7 +39,7 @@ def factory():
             data_dict = response.json()
             
             # Processing dictionary, inplace memory processing no need return 
-            process_data(data_dict)
+            update_data(data_dict)
 
             return flask.jsonify(data_dict)
         else:

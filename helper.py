@@ -57,7 +57,7 @@ def convert_price(price_idr:int) -> str:
     price_usd_fmt = f"{price_usd:0.2f}"
     return price_usd_fmt
 
-def process_data(data_json):
+def update_data(data_json):
     for data in data_json:
         # Handle for None valued price 
         price_idr = data["price"] or ""
