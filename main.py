@@ -1,83 +1,78 @@
 import flask
 import jwt
+import redis
 import config
 import functools
+import requests
+from error import (
+    BaseError, 
+    ConversionError,
+    DataSourceError,
+)
+import pandas
+from helper import auth, validate_token, process_data
 
 def factory():
     app = flask.Flask(__name__)
     app.config.from_object(config)
-    return app
-
-def auth(admin=False):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper_validate(*args, **kwargs):
-            claims = validate_token()
-            if admin is True and claims['role'] != "admin":
-                # Raise error if the access requirement is admin level, but user's role is not
-                raise RoleError("Restricted access")
-            return func(*args, **kwargs)
-        return wrapper_validate
-    return decorator
-
-def validate_token() -> str:
-    auth_string = flask.request.headers.get("Authorization", "")
-    auth_fields = auth_string.strip().split()
-    if len(auth_fields) == 2 and auth_fields[0].lower() == "bearer":
-        token = auth_fields[1]
-        try:
-            claims = jwt.decode(token, config.JWT_SECRET, algorithms=['HS256'])
-            return claims
-        except:
-            raise TokenError(message="Token is invalid, check your request")
-    raise TokenError(message="Authorization header is in invalid format, check your request")
-
-class BaseError(Exception):
-    def __init__(self, status=400, message=""):
-        self.status = status
-        self.message = message
-
-class TokenError(BaseError):
-    def __init__(self, message):
-        self.message = message
     
-class RoleError(BaseError):
-    def __init__(self, message):
-        super().__init__(status=401)
-        self.message = message
-
-
-if __name__ == "__main__":
-    app = factory()
-
-    
+    # Register routes
     @app.errorhandler(Exception)
     def handle_exception(e):
         """Custom error handling"""
+        import traceback
+        app.logger.info(traceback.format_exc())
+
         if isinstance(e, BaseError):        
             return flask.jsonify({"message": e.message}), e.status
         else:
             # For debugging purpose can log the original error (e)
-            # Or alternatively using traceback module
-            import traceback
-            app.logger.info(traceback.format_exc())
-
             return flask.jsonify({"message": "Unhandled error occured"}), 500
 
     @app.route("/data", methods=["GET"])
     @auth()
     def get_data():
-        int("a")
-        return "Haloo data"
+        # Get list user
+        response = requests.get(app.config.get("DATA_FETCH_URL"), timeout=30)
+        # Make sure server responded OK
+        if response.status_code == 200:
+            data_dict = response.json()
+            
+            # Processing dictionary, inplace memory processing no need return 
+            process_data(data_dict)
+
+            return flask.jsonify(data_dict)
+        else:
+            raise DataSourceError
+
 
     @app.route("/summary", methods=["GET"])
     @auth(admin=True)
     def get_aggregate():
-        return "Okesip"
+        # Get list user
+        response = requests.get(app.config.get("DATA_FETCH_URL"), timeout=30)
+        # Make sure server responded OK
+        if response.status_code == 200:
+            df = pandas.read_json(response.content)
+            data = df.groupby([
+                    pandas.Grouper(key='timestamp', freq='W-MON'), 
+                    "area_provinsi"
+                ])['price']\
+                .agg([("Min", "min"), ("Max", "max"), ("Mean", "mean"), ("Median", "median")])\
+                .reset_index()\
+                .sort_values("area_provinsi")
 
+            return flask.jsonify(data.to_dict("records"))
+        else:
+            raise DataSourceError
+        
     @app.route("/me", methods=["GET"])
     def check_token():
         claims = validate_token()
         return flask.jsonify(claims)
 
+    return app
+
+if __name__ == "__main__":
+    app = factory()
     app.run()
