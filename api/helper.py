@@ -2,7 +2,7 @@ import jwt
 import functools
 import flask
 import redis
-from error import TokenError, RoleError, ConversionError
+from .error import TokenError, RoleError, ConversionError
 import requests
 import config
 
