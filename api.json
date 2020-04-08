@@ -1,0 +1,58 @@
+{
+    "openapi":"3.0.2",
+    "info": {
+        "title":"API Title",
+        "version":"1.0"
+    },
+    "servers": [
+        {"url":"http://localhost:9121"}
+    ],
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        }
+        }
+    },
+    "security": [{"bearerAuth":[]}],
+    "paths": {
+        "/me": {
+            "get": {
+                "description": "Get current user information",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Basic error on authentication"
+                    }
+                }
+            }
+        },
+        "/summary": {
+            "get": {
+                "description": "Aggregate data grouped by Province and Weekly data",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/data": {
+            "get": {
+                "description": "Fetch list from data service",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        }
+    }
+}
