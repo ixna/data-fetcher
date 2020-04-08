@@ -8,7 +8,12 @@ Install all requirements
 pip install -r requirements.txt
 ```
 
-Run with running script (uwsgi)
+For development use flask internal web server
+```
+python main.py
+```
+
+For production use uwsgi (run.sh script)
 ```
 sh run.sh
 ```
