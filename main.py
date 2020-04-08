@@ -1,6 +1,5 @@
 import flask
 import jwt
-import requests
 import config
 import functools
 
@@ -16,6 +15,12 @@ def validate(func):
         return func(*args, **kwargs)
     return wrapper_validate
 
+def validate_token(auth_string:str) -> str:
+    auth_fields = auth_string.strip().split()
+    schema = auth_fields[0].lower()
+    if schema == "bearer":
+        return auth_fields[1]
+    return ""
 
 if __name__ == "__main__":
     app = factory()
@@ -31,12 +36,15 @@ if __name__ == "__main__":
 
     @app.route("/me", methods=["GET"])
     def check_token():
-        params = flask.request.headers.get("token")
-        if not params:
-            return flask.Response(400, "Token is missing, check your request")
-        check_token_service_addr = config.CHECK_TOKEN_SERVICE
-        data = dict(token=params.get("token"))
-        response = requests.post(check_token_service_addr, json=data)
-        return flask.jsonify(response.json())
+        auth_string = flask.request.headers.get("Authorization")
+        token = validate_token(auth_string)
+        if not token:
+            return flask.jsonify({"message": "Authorization header is missing, check your request"}), 400
+        
+        try:
+            claims = jwt.decode(token, config.JWT_SECRET, algorithms=['HS256'])
+        except:
+            return flask.jsonify({"message": "Invalid authorization token, check your request"}), 400
+        return flask.jsonify(claims)
 
     app.run()
