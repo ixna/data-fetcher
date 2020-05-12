@@ -1,26 +1,32 @@
-import flask
-import jwt
-import redis
 import config
+import flask
 import functools
+import jwt
+import pandas        
 import requests
+import traceback
 from .error import (
     BaseError, 
     ConversionError,
     DataSourceError,
 )
-import pandas
-from .helper import auth, validate_token, update_data
+from .helper import (
+    auth, 
+    validate_token, 
+    update_data, 
+    prep_cache_file
+)
+
+# prepare writeable file cache
+prep_cache_file()
 
 def factory():
     app = flask.Flask(__name__)
     app.config.from_object(config)
-    
     # Register routes
     @app.errorhandler(Exception)
     def handle_exception(e):
         """Custom error handling"""
-        import traceback
         app.logger.info(traceback.format_exc())
 
         if isinstance(e, BaseError):        
@@ -70,6 +76,9 @@ def factory():
     def check_token():
         claims = validate_token()
         return flask.jsonify(claims)
+    
+    @app.route("/", methods=["GET"])
+    def root():
+        return "Hello there"
 
     return app
-
