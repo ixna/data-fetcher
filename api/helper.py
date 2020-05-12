@@ -1,13 +1,16 @@
 import jwt
 import functools
 import flask
-import redis
 from .error import TokenError, RoleError, ConversionError
 import requests
 import config
+import os
+import time
 
-# init redis to be used in application
-redis_cache = redis.Redis(host='localhost', port=6379, db=0)
+def prep_cache_file():
+    if not os.path.isfile(config.CURRCONV_CACHE_KEY):
+        with open(config.CURRCONV_CACHE_KEY,'a') as f:
+            pass
 
 def validate_token() -> str:
     auth_string = flask.request.headers.get("Authorization", "")
@@ -33,10 +36,34 @@ def auth(admin=False):
         return wrapper_validate
     return decorator
 
+def get_cache():
+    rate = None
+    expiry = None
+    with open(config.CURRCONV_CACHE_KEY, "r") as cache_data:
+        try:
+            rate, expiry = cache_data.read.split("|")
+        except:
+            pass
+    
+    if expiry is not None:
+        # invalidate data cache if more than 10 minutes passed, 
+        if int(expiry) + (10 * 60) > int(time.time()):
+            rate = None
+    
+    return rate
+
+def set_cache(price):
+    expiry = int(time.time())
+
+    # format data cache so it can be used by get_cache func
+    data = f"{price}|{expiry}"
+    with open(config.CURRCONV_CACHE_KEY, "w") as cache_data:
+        cache_data.write(data)
+
 def usdtoidr():
     """Get currency exchange usd to idr rate"""
     # Get data from cache
-    rate = redis_cache.get(config.CURRCONV_CACHE_KEY)
+    rate = get_cache()
 
     # Pull data from server if cache expired
     if rate is None: 
@@ -44,9 +71,12 @@ def usdtoidr():
         if rate_data.status_code == 200:
             rate_json = rate_data.json()
             rate = rate_json["USD_IDR"]
-            redis_cache.setex(config.CURRCONV_CACHE_KEY, 10 * 60, rate)
+            
+            # save to cache
+            set_cache(rate) 
         else:
             raise ConversionError
+    
     return int(rate)
 
 def convert_price(price_idr:int) -> str:
