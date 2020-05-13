@@ -82,3 +82,5 @@ def factory():
         return "Hello there"
 
     return app
+
+app = factory()

@@ -41,7 +41,7 @@ def get_cache():
     expiry = None
     with open(config.CURRCONV_CACHE_KEY, "r") as cache_data:
         try:
-            rate, expiry = cache_data.read.split("|")
+            rate, expiry = cache_data.read.split(" ")
         except:
             pass
     
@@ -56,7 +56,7 @@ def set_cache(price):
     expiry = int(time.time())
 
     # format data cache so it can be used by get_cache func
-    data = f"{price}|{expiry}"
+    data = f"{price} {expiry}"
     with open(config.CURRCONV_CACHE_KEY, "w") as cache_data:
         cache_data.write(data)
 
