@@ -60,7 +60,15 @@ def factory():
         # Make sure server responded OK
         if response.status_code == 200:
             df = pandas.read_json(response.content)
-            data = df.groupby([
+
+            # cleanup data, make sure price data are in correct format
+            df_clean = df[df['price'].apply(lambda x: str(x).isdigit())]
+
+            # cast price to integer data type
+            df_fix = df_clean.astype({"price": "int64"})
+
+            # aggregate data by group
+            data = df_fix.groupby([
                     pandas.Grouper(key='timestamp', freq='W-MON'), 
                     "area_provinsi"
                 ])['price']\
