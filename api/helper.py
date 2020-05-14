@@ -41,13 +41,15 @@ def get_cache():
     expiry = None
     with open(config.CURRCONV_CACHE_KEY, "r") as cache_data:
         try:
-            rate, expiry = cache_data.read.split(" ")
+            rate, expiry = cache_data.read().split(" ")
+            rate = int(float(rate))
+            expiry = int(expiry)
         except:
             pass
-    
+        
     if expiry is not None:
-        # invalidate data cache if more than 10 minutes passed, 
-        if int(expiry) + (10 * 60) > int(time.time()):
+        # invalidate data cache if more than 10 minutes passed,
+        if expiry + (10 * 60) < int(time.time()):
             rate = None
     
     return rate
