@@ -1,0 +1,10 @@
+version: '3'
+services:
+  data:
+    build: .
+    ports:
+    - "9121:9121"
+  auth:
+    build: https://github.com/ixna/auth-jwt.git
+    ports:
+    - "9120:9120"
