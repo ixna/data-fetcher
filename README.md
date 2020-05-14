@@ -17,3 +17,8 @@ For production use uwsgi (run.sh script)
 ```
 sh run.sh
 ```
+
+Or simply use docker compose
+```
+docker-compose up
+```
