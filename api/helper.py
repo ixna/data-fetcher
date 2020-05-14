@@ -62,6 +62,43 @@ def set_cache(price):
     with open(config.CURRCONV_CACHE_KEY, "w") as cache_data:
         cache_data.write(data)
 
+def mandiri_usdtoidr():
+    # get cookie
+    get_cookie = requests.get("https://www.bankmandiri.co.id/kurs", 
+        headers={'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS \
+            X 10.15; rv:75.0) Gecko/20100101 Firefox/75.0'})
+    cookie = get_cookie.headers['Set-Cookie']
+
+    # build request
+    url = ('https://www.bankmandiri.co.id/web/guest/kurs?'
+        'p_p_id=Exchange_Rate_Portlet_INSTANCE_9070nSEKk62r&'
+        'p_p_lifecycle=2&p_p_state=normal&p_p_mode=view&'
+        'p_p_resource_id=calculateCurrency&p_p_cacheability=cacheLevelPage')
+    
+    data = {
+        '_Exchange_Rate_Portlet_INSTANCE_9070nSEKk62r_value': '1', 
+        '_Exchange_Rate_Portlet_INSTANCE_9070nSEKk62r_from': '204', 
+        '_Exchange_Rate_Portlet_INSTANCE_9070nSEKk62r_to': '61', 
+        '_Exchange_Rate_Portlet_INSTANCE_9070nSEKk62r_jenis': 'BUY'
+    }
+
+    headers = {
+        'User-Agent' : ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; '
+            'rv:75.0) Gecko/20100101 Firefox/75.0'), 
+        'Referer': 'https://www.bankmandiri.co.id/kurs', 
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 
+        'Origin': 'https://www.bankmandiri.co.id', 
+        'Cookie': cookie}
+    
+    try:
+        data_raw = requests.post(
+            url, headers=headers, data=data, timeout=30)
+        
+        currency_rate = data_raw.json()["value"]
+        return currency_rate
+    except:
+        return None
+
 def usdtoidr():
     """Get currency exchange usd to idr rate"""
     # Get data from cache
@@ -69,16 +106,21 @@ def usdtoidr():
 
     # Pull data from server if cache expired
     if rate is None: 
+        rate = mandiri_usdtoidr()
+
+    if rate is None:
         rate_data = requests.get(config.CURRCONV_URL, timeout=30)
         if rate_data.status_code == 200:
             rate_json = rate_data.json()
             rate = rate_json["USD_IDR"]
             
-            # save to cache
-            set_cache(rate) 
         else:
             raise ConversionError
     
+    if rate is not None:
+        # save to cache
+        set_cache(rate) 
+
     return int(rate)
 
 def convert_price(price_idr:int) -> str:
